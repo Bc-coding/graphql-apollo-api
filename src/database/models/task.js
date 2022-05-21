@@ -11,7 +11,11 @@ const taskSchema = new mongoose.Schema(
       required: true,
     },
     // we need to define the relationship between user and task models
-    user: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    // user: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+    user: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
   },
   // the timestamps will automatically have created_at and updated_at fields
   {

@@ -14,7 +14,7 @@ module.exports = gql`
     id: ID!
     name: String!
     completed: Boolean!
-    user: User
+    user: User!
   }
   ###### INPUT #####
   input createTaskInput {

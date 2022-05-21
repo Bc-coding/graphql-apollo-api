@@ -51,7 +51,7 @@ module.exports = {
             throw new Error("User not found!");
           }
 
-          const task = new Task({ ...input, user: user.id });
+          const task = new Task({ ...input, user: user._id });
           const result = await task.save(); // saving the created task in the database
 
           user.tasks.push(result.id);
@@ -68,7 +68,7 @@ module.exports = {
   Task: {
     user: async (parent) => {
       try {
-        const user = await Task.findById(parent.user);
+        const user = await User.findById(parent.user);
         return user;
       } catch (error) {
         console.log(error);
