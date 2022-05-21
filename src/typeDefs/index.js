@@ -1,9 +1,10 @@
-const { gql } = require('apollo-server-express');
+const { gql } = require("apollo-server-express");
 
-const userTypeDefs = require('./user');
-const taskTypeDefs = require('./task');
+const userTypeDefs = require("./user");
+const taskTypeDefs = require("./task");
 
 const typeDefs = gql`
+  scalar Date
   type Query {
     _: String
   }
@@ -12,9 +13,4 @@ const typeDefs = gql`
   }
 `;
 
-module.exports = [
-  typeDefs,
-  userTypeDefs,
-  taskTypeDefs
-]
-
+module.exports = [typeDefs, userTypeDefs, taskTypeDefs];

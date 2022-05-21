@@ -5,6 +5,7 @@ import http from "http";
 import dotEnv from "dotenv";
 import { tasks, users } from "./constants/index";
 import { v4 as uuidv4 } from "uuid";
+import { log } from "console";
 
 const typeDefs = gql`
   type Query {
@@ -83,6 +84,10 @@ async function startApolloServer(typeDefs, resolvers) {
     typeDefs,
     resolvers,
     csrfPrevention: true,
+    context: () => {
+      console.log("run!");
+      return { email: "test@gmail.com" };
+    },
     plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
   });
   await server.start();

@@ -2,12 +2,14 @@ const { ApolloServer, gql } = require("apollo-server-express");
 const { ApolloServerPluginDrainHttpServer } = require("apollo-server-core");
 const express = require("express");
 const http = require("http");
-const dotEnv = require("dotenv");
-const { tasks, users } = require("./constants/index");
+
 const resolvers = require("./resolvers/index");
 const typeDefs = require("./typeDefs/index");
 const mongoose = require("mongoose");
 const connection = require("./database/util/index");
+
+const { verifyUser } = require("./helper/context");
+const { log } = require("console");
 
 async function startApolloServer(typeDefs, resolvers) {
   const PORT = process.env.PORT || 4000;
@@ -22,6 +24,14 @@ async function startApolloServer(typeDefs, resolvers) {
       typeDefs,
       resolvers,
       csrfPrevention: true,
+      context: async ({ req }) => {
+        await verifyUser(req);
+        console.log("Context ran ===");
+        return {
+          email: req.email,
+          loggedInUserId: req.loggedInUserId,
+        };
+      },
       plugins: [ApolloServerPluginDrainHttpServer({ httpServer })],
     });
     await server.start();
