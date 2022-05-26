@@ -10,9 +10,14 @@ module.exports = {
   Query: {
     tasks: combineResolvers(
       isAuthenticated,
-      async (_, __, { loggedInUserId }) => {
+      async (_, { skip = 0, limit = 10 }, { loggedInUserId }) => {
         try {
-          const tasks = await Task.find({ user: loggedInUserId });
+          const tasks = await Task.find({ user: loggedInUserId })
+            .sort({
+              _id: -1,
+            })
+            .skip(skip)
+            .limit(limit);
           return tasks;
         } catch (error) {
           console.log(error);
@@ -58,6 +63,41 @@ module.exports = {
           await user.save();
           console.log(result);
           return result;
+        } catch (error) {
+          console.log(error);
+          throw error;
+        }
+      }
+    ),
+    updateTask: combineResolvers(
+      isAuthenticated,
+      isOwner,
+      async (_, { id, input }) => {
+        try {
+          const task = await Task.findByIdAndUpdate(
+            id,
+            { ...input },
+            { new: true } // will give us the latest updated record
+          );
+          return task;
+        } catch (error) {
+          console.log(error);
+          throw error;
+        }
+      }
+    ),
+    deleteTask: combineResolvers(
+      isAuthenticated,
+      isOwner,
+      async (_, { id }, { loggedInUserId }) => {
+        try {
+          const task = await Task.findByIdAndDelete(id);
+          // we also need to delete in the user's tasks array
+          await User.updateOne(
+            { _id: loggedInUserId },
+            { $pull: { tasks: task.id } }
+          ); // using pull operator, fill in the field object with name and id
+          return task;
         } catch (error) {
           console.log(error);
           throw error;
