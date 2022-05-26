@@ -1,11 +1,15 @@
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 const { combineResolvers } = require("graphql-resolvers");
 const jwt = require("jsonwebtoken");
 const { users, tasks } = require("../constants");
 // Getting data from database
 const User = require("../database/models/user");
 const Task = require("../database/models/task");
+const Token = require("../database/models/token");
 const { isAuthenticated } = require("./middleware");
+const bcryptSalt = process.env.BCRYPT_SALT;
+const { sendEmail } = require("../utils/email/sendEmail");
 
 module.exports = {
   Query: {
@@ -69,6 +73,33 @@ module.exports = {
         // console.log(error);
         throw new Error("User not found");
       }
+    },
+    requestPasswordReset: async (_, { email }) => {
+      const user = await User.findOne({ email });
+
+      if (!user) {
+        throw new Error("User does not exist");
+      }
+      let token = await Token.findOne({ userId: user._id });
+      if (token) await token.deleteOne();
+
+      let resetToken = crypto.randomBytes(32).toString("hex");
+      const hash = await bcrypt.hash(resetToken, Number(bcryptSalt));
+
+      await new Token({
+        userId: user._id,
+        token: hash,
+        createdAt: Date.now(),
+      }).save();
+
+      const link = `${clientURL}/passwordReset?token=${resetToken}&id=${user._id}`;
+      sendEmail(
+        user.email,
+        "Password Reset Request",
+        { name: user.name, link: link },
+        "./template/requestResetPassword.handlebars"
+      );
+      return link;
     },
   },
   User: {
