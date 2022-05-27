@@ -9,11 +9,11 @@ const Task = require("../database/models/task");
 const Token = require("../database/models/token");
 const { isAuthenticated } = require("./middleware");
 const bcryptSalt = process.env.BCRYPT_SALT;
-const { sendEmail } = require("../utils/email/sendEmail");
+const sendEmail = require("../utils/email/sendEmail");
+const { log } = require("console");
 
 module.exports = {
   Query: {
-    // users: () => users,
     user: combineResolvers(isAuthenticated, async (_, __, { email }) => {
       try {
         // checking database if the user exists
@@ -74,32 +74,38 @@ module.exports = {
         throw new Error("User not found");
       }
     },
-    requestPasswordReset: async (_, { email }) => {
-      const user = await User.findOne({ email });
+    requestPasswordReset: async (_, { input }) => {
+      try {
+        const user = await User.findOne({ email: input.email });
 
-      if (!user) {
-        throw new Error("User does not exist");
+        if (!user) {
+          throw new Error("User does not exist");
+        }
+        let token = await Token.findOne({ userId: user._id });
+        if (token) await token.deleteOne();
+
+        let resetToken = crypto.randomBytes(32).toString("hex");
+        const hash = await bcrypt.hash(resetToken, Number(bcryptSalt));
+
+        const newToken = await new Token({
+          userId: user._id,
+          token: hash,
+          createdAt: Date.now(),
+        }).save();
+
+        const link = `${process.env.CLIENT_URL}/passwordReset?token=${resetToken}&id=${user._id}`;
+        sendEmail(
+          user.email,
+          "Password Reset Request",
+          { name: user.name, link: link },
+          "./template/requestResetPassword.handlebars"
+        );
+        return newToken;
+      } catch (error) {
+        console.log(error);
+        console.log("run");
+        throw error;
       }
-      let token = await Token.findOne({ userId: user._id });
-      if (token) await token.deleteOne();
-
-      let resetToken = crypto.randomBytes(32).toString("hex");
-      const hash = await bcrypt.hash(resetToken, Number(bcryptSalt));
-
-      await new Token({
-        userId: user._id,
-        token: hash,
-        createdAt: Date.now(),
-      }).save();
-
-      const link = `${clientURL}/passwordReset?token=${resetToken}&id=${user._id}`;
-      sendEmail(
-        user.email,
-        "Password Reset Request",
-        { name: user.name, link: link },
-        "./template/requestResetPassword.handlebars"
-      );
-      return link;
     },
   },
   User: {
